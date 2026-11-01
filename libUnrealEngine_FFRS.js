@@ -849,6 +849,28 @@ module.exports = exports = {
     getObjectId,
     functions: cacheFunctions
 }
+
+const ffrsTalkManagers = new Map();
+function ffrsForEachActiveCaption(callback) {
+    for (const [key, manager] of ffrsTalkManagers) {
+        try {
+            if (getObjectId(manager.object) !== manager.id
+                || getObjectClassName(manager.object) !== 'CPP_WBP_TalkWindowManager') {
+                ffrsTalkManagers.delete(key);
+                continue;
+            }
+            const window = manager.object.add(0x190).readPointer();
+            if (window.isNull() || !/^WBP_(TalkWindow|TalkEvent_Caption\w*)_C$/.test(getObjectClassName(window))) continue;
+            const text = window.add(0x558).readPointer();
+            if (!text.isNull() && getObjectClassName(text) === 'CPP_GradualTextBlock'
+                && getObjectFullName(text).startsWith(getObjectFullName(window) + '.WidgetTree.')) {
+                callback(text, true);
+            }
+        } catch (_) { ffrsTalkManagers.delete(key); }
+    }
+}
+module.exports.ffrsForEachActiveCaption = ffrsForEachActiveCaption;
+
 function ffrsForEachTextWidget(callback) {
     const pages = GUObjectArray.readPointer();
     for (let j = 0; j < 64; j++) {
@@ -864,10 +886,15 @@ function ffrsForEachTextWidget(callback) {
             if (item.compare(stop) >= 0) break;
             try {
                 const object = item.readPointer();
+                if (!object.isNull() && getObjectClassName(object) === 'CPP_WBP_TalkWindowManager'
+                    && getObjectFullName(object).startsWith('/Engine/Transient.')) {
+                    ffrsTalkManagers.set(object.toString(), {object, id: getObjectId(object)});
+                }
                 if (!object.isNull() && /^(CPP_GradualTextBlock|CommonTextBlock|CommonRichTextBlock)$/.test(getObjectClassName(object))
                     && getObjectFullName(object).startsWith('/Engine/Transient.')) callback(object);
             } catch (_) {}
         }
     }
+    ffrsForEachActiveCaption(callback);
 }
 module.exports.ffrsForEachTextWidget = ffrsForEachTextWidget;

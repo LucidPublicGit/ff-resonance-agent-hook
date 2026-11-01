@@ -11,13 +11,14 @@ Experimental text hook for the Steam PC version of **FINAL FANTASY RESONANCE**, 
 
 Both files are required:
 
-- `PC_Steam_FINAL_FANTASY_RESONANCE.js` — the game hook (v0.3.0).
+- `PC_Steam_FINAL_FANTASY_RESONANCE.js` — the game hook (v0.4.0).
 - `libUnrealEngine_FFRS.js` — its local Unreal Engine compatibility library.
 
 ## Captures
 
 - Normal dialogue
 - Event and battle caption widgets
+- Centered narration captions resolved through the active talk-window manager
 - Tutorial titles and explanations
 
 The hook watches text changes and checks for replacement widgets every 1.5 seconds.

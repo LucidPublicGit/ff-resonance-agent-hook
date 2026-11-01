@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         FINAL FANTASY RESONANCE (experimental)
-// @version      0.3.0
+// @version      0.4.0
 // @description  Steam PC; Japanese dialogue and event captions. Local custom hook.
 // ==/UserScript==
 'use strict';
@@ -88,10 +88,10 @@ function update(entry) {
 }
 
 // Seed existing widgets without sending retained lines from earlier scenes.
-UE.ffrsForEachTextWidget(object => {
+UE.ffrsForEachTextWidget((object, activeCaption = false) => {
     try {
         const entry = remember(object);
-        if (entry && (/WBP_TalkWindow_C/.test(entry.context) || tutorialPattern.test(entry.context))) output(entry.text);
+        if (entry && (activeCaption || /WBP_TalkWindow_C/.test(entry.context) || tutorialPattern.test(entry.context))) output(entry.text);
     } catch (_) {}
 });
 
@@ -135,5 +135,16 @@ function discoverNewWidgets() {
 }
 setInterval(discoverNewWidgets, 1500);
 // Also catch direct native text updates that bypass Blueprint BeginText.
-setInterval(() => { for (const entry of watched.values()) update(entry); }, 200);
+setInterval(() => {
+    // Some centered-caption widgets are absent from the initial object scan.
+    // Resolve the active window through its manager on every polling tick.
+    UE.ffrsForEachActiveCaption(object => {
+        try {
+            const previous = watched.get(object.toString());
+            const entry = remember(object);
+            if (entry && entry !== previous) output(entry.text);
+        } catch (_) {}
+    });
+    for (const entry of watched.values()) update(entry);
+}, 200);
 console.log('Resonance hook ready: ' + watched.size + ' dialogue/caption/tutorial widgets. Speaker names and menus excluded.');
